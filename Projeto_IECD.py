@@ -42,7 +42,7 @@ def vol_motor():
     #O volume do motor não tem relação significativa com a transmissão
 
 # --------------------------------------- Seleção de variaveis ---------------------------------------------------------
-def k(val1, val2):
+def cc_filter(val1, val2):
     lst = []
     for idx in range(len(CC_list)):
         if val1 < CC_list[idx] < val2:
@@ -50,7 +50,7 @@ def k(val1, val2):
     return lst
 
 
-CCs = k(0.20, 0.9)
+CCs = cc_filter(0.20, 0.9)
 
 new_data = []
 new_label = []
@@ -60,8 +60,6 @@ for col in CCs:
     new_label.append(labels[col])  # Linha vira coluna, coluna vira linha
 
 new_data.append(transmissao)
-# ---------------------------------------------------
-# def filtro_std():
 
 #---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
 # Metodo KNN
@@ -133,43 +131,53 @@ def moda(lst):
 
 # ================================================== Método KNN ========================================================
 
-def knn_point(P, data_knnP, resul):  # Função que classifica um ponto apenas
-    NK = 3
-    dist = np.zeros(data_knnP.shape[0])
+def GetNearestKN(point,ignore , data):
 
-    for i in range(0, data_knnP.shape[0]):
-        di = np.linalg.norm(P - data_knnP[:, i])
-        dist[i] = di
+    dist = np.empty( [np.shape(data)[0], 2 ] )
 
-    idx = np.argsort(dist)
-    res = resul[idx[0:NK]]
-    classe = moda(res)
+    for i in range(np.shape(data)[0]):
+        if i == ignore:
+            dist[i] = [9999, i]
+            continue
 
-    return classe
+        dist[i] = [ np.linalg.norm(point - data[i]), i ]
 
+    olddist = dist
 
-def knn(data_knn, resul):  # Função para classificar todos os pontos
-    classification = []
-    for line in range(data_knn.shape[1]):
-        classification.append(knn_point([data_knn[0, line], data_knn[1, line], data_knn[2, line]], data_knn, resul))
+    idx = np.argsort(dist[:, 0])
+    sortedDist = dist[idx]
 
-    classification = np.array(classification)
+    return sortedDist
 
-    # Plot dos pontos em 3 dimensões
-    """
+def KNN(data_knn, res_knn,k):
     fig = plt.figure()
-    ax = fig.add_subplot(projection ='3d')
-    for lin in range(data_knn.shape[1]):
-        xs = data_knn[0, lin]   # Torque
-        ys = data_knn[1, lin]   # city_mpg
-        zs = data_knn[2, lin]   # highway_mpg
+    ax = fig.add_subplot(projection='3d')
 
-        if classification[lin] == 0:
+    for i in range(np.shape(data_knn)[0]):
+        v = data_knn[i]
+        neigh_idx = GetNearestKN(v, i, data_knn)[:,1]
+
+        nn  = []
+        for idx in range(k):
+            nn.append(neigh_idx[idx])
+
+        nn = np.array(nn)
+
+        ttl = 0
+        for elem in nn:
+            elem = int(elem)
+            ttl = ttl + res_knn[elem]
+
+
+        xs = data_knn[i, 0]
+        ys = data_knn[i, 1]
+        zs = data_knn[i, 2]
+
+        if ttl > (k/2):
             p0 = plt.scatter(xs, ys, zs, 'b')
+
         else:
             p1 = plt.scatter(xs, ys, zs, 'r')
-
-
 
     plt.title("Representação grafica da classificação")
     fig.legend((p0, p1), ('Elétrico', 'Combustão'), loc='upper left')
@@ -177,30 +185,11 @@ def knn(data_knn, resul):  # Função para classificar todos os pontos
     ax.set_xlabel("Torque")
     ax.set_ylabel("city_mpg")
     ax.set_zlabel("highway_mpg")
-
     plt.show()
-    """
 # ____________________________________________________________________________________
 
-    TP = 0
-    FP = 0
-    TN = 0
-    FN = 0
-    for idx in range(0, len(classification)):
-        if classification[idx] == resul[idx] and classification[idx] == 1:
-            TP += 1
-        if classification[idx] == resul[idx] and classification[idx] == 0:
-            TN = TN + 1
-        if classification[idx] == 1 and resul[idx] == 0:
-            FN = FN + 1
-        if classification[idx] == 0 and resul[idx] == 1:
-            FP = FP + 1
 
-    SE = TP / (TP + FN)
-    SP = TN / (TN + FP)
-    print("\n ------------------ KNN ------------------")
-    print(" SE - sensibilidade  =", round(SE, 3))
-    print(" SP - Especificidade =", round(SP, 3))
+
 
 # ======================================= Fronteira de Decisão =========================================================
 
@@ -247,4 +236,8 @@ def fronteria_decisao():
     print(" SE - sensibilidade  >", round(SE, 3))
     print(" SP - Especificidade >", round(SP, 3))
 
-knn(data_treino, resul_treino)
+
+data_treino = np.transpose(data_treino)
+resul_treino = np.transpose(resul_treino)
+
+KNN(data_treino, resul_treino,3)
