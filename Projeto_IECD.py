@@ -20,13 +20,14 @@ CC_list = []
 for col in range(colunas):
     CC_list.append(np.abs(np.corrcoef(data[:, col], transmissao)[0][1]))
 
+
 # ------------------------------------- Representação grafica das variaveis ---------------------------------------------
 def graficRepresentation():
     for col in range(colunas):
         plt.figure(col)
         for row in range(lines):
-            #print(f'{row}={data[:,col][row]}')
-            plt.scatter(row,data[:,col][row])
+            # print(f'{row}={data[:,col][row]}')
+            plt.scatter(row, data[:, col][row])
 
 
 # -------------------------- Verificando se o VOLUME do motor tem alguma correlação significativa ----------------------
@@ -39,7 +40,8 @@ def vol_motor():
     corre_motor = np.corrcoef(vol_motor, transmissao)[0][1]
     print(corre_motor)
 
-    #O volume do motor não tem relação significativa com a transmissão
+    # O volume do motor não tem relação significativa com a transmissão
+
 
 # --------------------------------------- Seleção de variaveis ---------------------------------------------------------
 def cc_filter(val1, val2):
@@ -61,7 +63,8 @@ for col in CCs:
 
 new_data.append(transmissao)
 
-#---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
+
+# ---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
 # Metodo KNN
 def outliers_KNN(variavel):
     tratar = variavel
@@ -69,7 +72,7 @@ def outliers_KNN(variavel):
 
     for i in range(lines):
         vizinhos = []
-        if tratar[i] > 90:  # Valor 90 escolhido pois o  professor falou que outliers eram > 90
+        if tratar[i] > 90:  # Valor 90 escolhido, pois o professor falou que outliers eram > 90
 
             for j in range(1, k + 1):
                 vizinhos.append(tratar[i - k])
@@ -81,10 +84,13 @@ def outliers_KNN(variavel):
 
     variavel = tratar
 
-outliers_KNN(new_data[1]) # city_mpg
+
+outliers_KNN(new_data[1])  # city_mpg
 
 new_data = np.array(new_data)
 new_label = np.array(new_label)
+
+
 # -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
 # Metodo Filtro através do desvio padrão
 def outliers_filter(data_filter, fator):
@@ -94,14 +100,14 @@ def outliers_filter(data_filter, fator):
     limMax = mean + fator * desvio
     limMin = mean - fator * desvio
 
-
     outlierMax = np.where(data_filter >= limMax)[0]
     outlierMin = np.where(data_filter <= limMin)[0]
 
     data_filter[outlierMax] = limMax
     data_filter[outlierMin] = limMin
 
-outliers_filter(new_data[2, :], 2) # hightway_mpg
+
+outliers_filter(new_data[2, :], 2)  # hightway_mpg
 # ----------------------------------------- Normalização dos dados -----------------------------------------------------
 for i in range(new_data.shape[0] - 1):
     new_data[i, :] = new_data[i, :] - new_data[i, :].min()
@@ -115,32 +121,27 @@ new_colunas = new_data.shape[1]  # Originalmente linhas, são os dados
 random.shuffle(new_data[0])  # Shuffle apenas nas linhas
 data_treino = np.array(new_data[:3, :3574])
 resul_treino = np.array(new_data[3, :3574])
+data_treino = np.transpose(data_treino)
+resul_treino = np.transpose(resul_treino)
 
 data_validacao = np.array(new_data[:3, 3574:])
 resul_avaliacao = np.array(new_data[3, 3574:])
+data_validacao = np.transpose(data_validacao)
+resul_avaliacao = np.transpose(resul_avaliacao)
 
 # --------------------------------------------- Criação dos modelos ----------------------------------------------------
-# _____________________________________________ Funções auxiliares _____________________________________________________
-
-
-def moda(lst):
-    if np.sum(lst) >= len(lst)/2:
-        return 1
-    else:
-        return 0
 
 # ================================================== Método KNN ========================================================
 
-def GetNearestKN(point,ignore , data):
-
-    dist = np.empty( [np.shape(data)[0], 2 ] )
+def NearestKN(P, ignore, data):
+    dist = np.empty([np.shape(data)[0], 2])
 
     for i in range(np.shape(data)[0]):
         if i == ignore:
             dist[i] = [9999, i]
             continue
 
-        dist[i] = [ np.linalg.norm(point - data[i]), i ]
+        dist[i] = [np.linalg.norm(P - data[i]), i]
 
     olddist = dist
 
@@ -149,35 +150,54 @@ def GetNearestKN(point,ignore , data):
 
     return sortedDist
 
-def KNN(data_knn, res_knn,k):
+
+def KNN(data_knn, res_knn, k):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    for i in range(np.shape(data_knn)[0]):
-        v = data_knn[i]
-        neigh_idx = GetNearestKN(v, i, data_knn)[:,1]
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
 
-        nn  = []
+    for i in range(np.shape(data_knn)[0]):
+        classifica = 0
+
+        v = data_knn[i]
+        neigh_idx = NearestKN(v, i, data_knn)[:, 1]
+
+        nn = []
         for idx in range(k):
             nn.append(neigh_idx[idx])
 
         nn = np.array(nn)
 
-        ttl = 0
+        sum = 0
         for elem in nn:
             elem = int(elem)
-            ttl = ttl + res_knn[elem]
+            sum = sum + res_knn[elem]
 
 
         xs = data_knn[i, 0]
         ys = data_knn[i, 1]
         zs = data_knn[i, 2]
 
-        if ttl > (k/2):
+        if sum > (k/2):
             p0 = plt.scatter(xs, ys, zs, 'b')
+            classifica = 1
 
         else:
             p1 = plt.scatter(xs, ys, zs, 'r')
+            classifica = 0
+
+        if classifica == res_knn[i] and classifica == 1:
+            TP += 1
+        if classifica == res_knn[i] and classifica == 0:
+            TN += 1
+        if classifica == 1 and res_knn[i] == 0:
+            FN += 1
+        if classifica == 0 and res_knn[i] == 1:
+            FP += 1
 
     plt.title("Representação grafica da classificação")
     fig.legend((p0, p1), ('Elétrico', 'Combustão'), loc='upper left')
@@ -186,13 +206,14 @@ def KNN(data_knn, res_knn,k):
     ax.set_ylabel("city_mpg")
     ax.set_zlabel("highway_mpg")
     plt.show()
-# ____________________________________________________________________________________
-
-
-
+# ______________________________________________________________________________________________________________________
+    SE=TP/(TP+FN)
+    SP=TN/(TN+FP)
+    print("\n  ------------------ KNN ------------------")
+    print(" SE - sensibilidade  =", round(SE,3))
+    print(" SP - Especificidade =", round(SP,3))
 
 # ======================================= Fronteira de Decisão =========================================================
-
 
 def fronteria_decisao():
     # Calculo dos Minimos quadrados
@@ -213,7 +234,6 @@ def fronteria_decisao():
     for i in range(0, data_treino.shape[1]):
         if new_data[1, i] - m * new_data[0, i] - b >= 0:
             Ye2[i] = -1
-
 
     # Teste do modelo
     TP = 0
@@ -237,7 +257,4 @@ def fronteria_decisao():
     print(" SP - Especificidade >", round(SP, 3))
 
 
-data_treino = np.transpose(data_treino)
-resul_treino = np.transpose(resul_treino)
-
-KNN(data_treino, resul_treino,3)
+KNN(data_validacao, resul_avaliacao, 3)
