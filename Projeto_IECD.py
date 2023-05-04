@@ -63,13 +63,14 @@ new_data.append(transmissao)
 
 # ---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
 # Metodo KNN
-def outliers_KNN(variavel):
-    tratar = variavel                       # Como usa as médias, pode criar pontos que não existem
+def outliers_KNN(tratar):
     k = 3  # numero de vizinhos
+    count = 0
 
     for i in range(lines):
         vizinhos = []
         if tratar[i] > 90:  # Valor 90 escolhido, pois o professor falou que outliers eram > 90
+            count += 1
 
             for j in range(1, k + 1):
                 vizinhos.append(tratar[i - k])
@@ -79,7 +80,9 @@ def outliers_KNN(variavel):
             # print(city_mpg[i], mean, vizinhos)
             tratar[i] = mean
 
-    variavel = tratar
+    print("\n ------------------ Outliers ------------------")
+    print("Numero de outliers encontrados pelo KNN em 'city_mpg' =", count)
+
 
 outliers_KNN(new_data[1])  # city_mpg
 
@@ -101,27 +104,24 @@ def outliers_filter(data_filter, fator):
     data_filter[outlierMax] = limMax
     data_filter[outlierMin] = limMin
 
-outliers_filter(new_data[2, :], 2)  # hightway_mpg
+    soma = np.sum(len(outlierMin) + len(outlierMax))
+
+    print("Numero de outliers encontrados pelo Filter em 'highway_mpg' =", soma)
+
+outliers_filter(new_data[2, :], 3)  # hightway_mpg
 # ----------------------------------------- Normalização dos dados -----------------------------------------------------
 for i in range(new_data.shape[0] - 1):
     new_data[i, :] = new_data[i, :] - new_data[i, :].min()
     new_data[i, :] = new_data[i, :] / new_data[i, :].max()
 
-new_lines = new_data.shape[0]  # Originalemtne colunas, são as variaveis (ainda segue a ordem de "Labels")
-new_colunas = new_data.shape[1]  # Originalmente linhas, são os dados
-
+new_data = np.transpose(new_data)
 # -------------------------------- Separando os dados em Treino/Validação ----------------------------------------------
-
 random.shuffle(new_data[0])  # Shuffle apenas nas linhas
-data_treino = np.array(new_data[:3, :3574])
-resul_treino = np.array(new_data[3, :3574])
-data_treino = np.transpose(data_treino)
-resul_treino = np.transpose(resul_treino)
+data_treino = np.array(new_data[:3574, :3])
+resul_treino = np.array(new_data[:3574, 3])
 
-data_validacao = np.array(new_data[:3, 3574:])
-resul_avaliacao = np.array(new_data[3, 3574:])
-data_validacao = np.transpose(data_validacao)
-resul_avaliacao = np.transpose(resul_avaliacao)
+data_validacao = np.array(new_data[3574:, :3])
+resul_avaliacao = np.array(new_data[3574:, 3])
 
 # --------------------------------------------- Criação dos modelos ----------------------------------------------------
 
@@ -252,4 +252,4 @@ def fronteria_decisao():
     print(" SP - Especificidade >", round(SP, 3))
 
 
-KNN(data_validacao, resul_avaliacao, 5)
+KNN(data_treino, resul_treino, 5)
