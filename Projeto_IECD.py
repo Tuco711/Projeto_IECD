@@ -20,7 +20,6 @@ CC_list = []
 for col in range(colunas):
     CC_list.append(np.abs(np.corrcoef(data[:, col], transmissao)[0][1]))
 
-
 # ------------------------------------- Representação grafica das variaveis ---------------------------------------------
 def graficRepresentation():
     for col in range(colunas):
@@ -51,7 +50,6 @@ def cc_filter(val1, val2):
             lst.append(idx)
     return lst
 
-
 CCs = cc_filter(0.20, 0.9)
 
 new_data = []
@@ -63,11 +61,10 @@ for col in CCs:
 
 new_data.append(transmissao)
 
-
 # ---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
 # Metodo KNN
 def outliers_KNN(variavel):
-    tratar = variavel
+    tratar = variavel                       # Como usa as médias, pode criar pontos que não existem
     k = 3  # numero de vizinhos
 
     for i in range(lines):
@@ -84,17 +81,15 @@ def outliers_KNN(variavel):
 
     variavel = tratar
 
-
 outliers_KNN(new_data[1])  # city_mpg
 
 new_data = np.array(new_data)
 new_label = np.array(new_label)
 
-
 # -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
 # Metodo Filtro através do desvio padrão
 def outliers_filter(data_filter, fator):
-    mean = np.mean(data_filter)
+    mean = np.mean(data_filter)                 # MELHOR MÉTODO PARA OUTLIERS (Usa pontos reais)
     desvio = np.std(data_filter)
 
     limMax = mean + fator * desvio
@@ -105,7 +100,6 @@ def outliers_filter(data_filter, fator):
 
     data_filter[outlierMax] = limMax
     data_filter[outlierMin] = limMin
-
 
 outliers_filter(new_data[2, :], 2)  # hightway_mpg
 # ----------------------------------------- Normalização dos dados -----------------------------------------------------
@@ -134,21 +128,21 @@ resul_avaliacao = np.transpose(resul_avaliacao)
 # ================================================== Método KNN ========================================================
 
 def NearestKN(P, ignore, data):
-    dist = np.empty([np.shape(data)[0], 2])
+    dist = np.empty([np.shape(data)[0], 2])     # Cria matriz dist/idx
 
-    for i in range(np.shape(data)[0]):
+    for i in range(np.shape(data)[0]):      # Percorre as linhas
         if i == ignore:
-            dist[i] = [9999, i]
+            dist[i] = [9999, i]     # Foi notado que dava distância 0, aqui a gente contorna isso
             continue
 
-        dist[i] = [np.linalg.norm(P - data[i]), i]
+        dist[i] = [np.linalg.norm(P - data[i]), i]      # Calculo da distancia
 
     olddist = dist
 
-    idx = np.argsort(dist[:, 0])
+    idx = np.argsort(dist[:, 0])    # sort nas distancias
     sortedDist = dist[idx]
 
-    return sortedDist
+    return sortedDist       # Retorna a matriz das distancias filtradas pela mais proxima
 
 
 def KNN(data_knn, res_knn, k):
@@ -164,25 +158,25 @@ def KNN(data_knn, res_knn, k):
         classifica = 0
 
         v = data_knn[i]
-        neigh_idx = NearestKN(v, i, data_knn)[:, 1]
+        neigh_idx = NearestKN(v, i, data_knn)[:, 1]     # Vetor com os índices mais proximos
 
         nn = []
         for idx in range(k):
-            nn.append(neigh_idx[idx])
+            nn.append(neigh_idx[idx])   # Listas com os k indices mais proximos
 
         nn = np.array(nn)
 
         sum = 0
         for elem in nn:
             elem = int(elem)
-            sum = sum + res_knn[elem]
+            sum = sum + res_knn[elem]   # Somatório das calssificações dos k vizinhos (0/1)
 
 
         xs = data_knn[i, 0]
         ys = data_knn[i, 1]
         zs = data_knn[i, 2]
 
-        if sum > (k/2):
+        if sum > (k/2):     # Moda
             p0 = plt.scatter(xs, ys, zs, 'b')
             classifica = 1
 
@@ -190,6 +184,7 @@ def KNN(data_knn, res_knn, k):
             p1 = plt.scatter(xs, ys, zs, 'r')
             classifica = 0
 
+        # Calculo de avaliação do modelo
         if classifica == res_knn[i] and classifica == 1:
             TP += 1
         if classifica == res_knn[i] and classifica == 0:
@@ -219,7 +214,7 @@ def fronteria_decisao():
     # Calculo dos Minimos quadrados
     UM = np.ones((data_treino.shape[1], 3574))
     X1 = np.concatenate((data_treino, UM), axis=0)
-    id0 = np.where(transmissao == 0)[0]
+    id0 = np.where(resul_treino == 0)[0]
     transmissao[id0] = -1
 
     LSQ = np.linalg.lstsq(X1, transmissao, rcond=None)
@@ -257,4 +252,4 @@ def fronteria_decisao():
     print(" SP - Especificidade >", round(SP, 3))
 
 
-KNN(data_validacao, resul_avaliacao, 3)
+KNN(data_validacao, resul_avaliacao, 5)
