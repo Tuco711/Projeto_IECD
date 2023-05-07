@@ -28,7 +28,6 @@ def graficRepresentation():
             # print(f'{row}={data[:,col][row]}')
             plt.scatter(row, data[:, col][row])
 
-
 # -------------------------- Verificando se o VOLUME do motor tem alguma correlação significativa ----------------------
 def vol_motor():
     vol_motor = []
@@ -124,7 +123,6 @@ data_validacao = np.array(new_data[3574:, :3])
 resul_avaliacao = np.array(new_data[3574:, 3])
 
 # --------------------------------------------- Criação dos modelos ----------------------------------------------------
-
 # ================================================== Método KNN ========================================================
 
 def NearestKN(P, ignore, data):
@@ -171,7 +169,6 @@ def KNN(data_knn, res_knn, k):
             elem = int(elem)
             sum = sum + res_knn[elem]   # Somatório das calssificações dos k vizinhos (0/1)
 
-
         xs = data_knn[i, 0]
         ys = data_knn[i, 1]
         zs = data_knn[i, 2]
@@ -195,7 +192,7 @@ def KNN(data_knn, res_knn, k):
             FP += 1
 
     plt.title("Representação grafica da classificação")
-    fig.legend((p0, p1), ('Elétrico', 'Combustão'), loc='upper left')
+    fig.legend((p0, p1), ('Automático', 'Manual'), loc='upper left')
 
     ax.set_xlabel("Torque")
     ax.set_ylabel("city_mpg")
@@ -212,8 +209,11 @@ def KNN(data_knn, res_knn, k):
 
 def fronteria_decisao():
     # Calculo dos Minimos quadrados
-    UM = np.ones((data_treino.shape[1], 3574))
-    X1 = np.concatenate((data_treino, UM), axis=0)
+    UM = np.ones((data_treino.shape[0]))
+    X1 = np.array([data_treino.shape[0], data_treino.shape[1]+1])
+    X1 = np.concatenate(UM, 1)
+
+    # X1 = np.concatenate((data_treino, UM), axis=1)
     id0 = np.where(resul_treino == 0)[0]
     transmissao[id0] = -1
 
@@ -230,26 +230,44 @@ def fronteria_decisao():
         if new_data[1, i] - m * new_data[0, i] - b >= 0:
             Ye2[i] = -1
 
-    # Teste do modelo
-    TP = 0
+# KNN(data_treino, resul_treino, 5)
+def similaridade():
+    id0 = np.where(resul_treino == 0)[0]
+    C0 = np.zeros(3)
+    C0[0] = np.mean(data_treino[id0, 0])
+    C0[1] = np.mean(data_treino[id0, 1])
+    C0[2] = np.mean(data_treino[id0, 2])
+    # --------------------------------------- laranja media / tipica
+    id1 = np.where(resul_treino == 1)[0]
+    C1 = np.zeros(3)
+    C1[0] = np.mean(data_treino[id1, 0])
+    C1[1] = np.mean(data_treino[id1, 1])
+    C1[2] = np.mean(data_treino[id1, 2])
+
+    Ye1 = np.zeros(data_treino.shape[0])  # Estimativa doi ruto - zeros = tudo peras !!
+    for i in range(0, data_treino.shape[0]):
+        d0 = np.linalg.norm(C0 - data_treino[i, :])  # dist Pera tipica , fruto
+        d1 = np.linalg.norm(C1 - data_treino[i, :])  # dist Laranja tipica , fruto
+        if d1 < d0:  # mais parecido com uma laranja media
+            Ye1[i] = 1
+
     FP = 0
+    TP = 0
     TN = 0
     FN = 0
-    for i in range(0, new_colunas):
-        if transmissao[i] == Ye2[i] and transmissao[i] == 1:  # T=Yest=1
+    for i in range(0, data_treino.shape[0]):
+        if resul_treino[i] == Ye1[i] and resul_treino[i] == 1:  # T=Yest=1
             TP = TP + 1
-        if transmissao[i] == Ye2[i] and transmissao[i] == -1:  # T=Yest=0
+        if resul_treino[i] == Ye1[i] and resul_treino[i] == 0:  # T=Yest=0
             TN = TN + 1
-        if transmissao[i] == 1 and Ye2[i] == -1:  # T=1, Yes=0
+        if resul_treino[i] == 1 and Ye1[i] == 0:  # T=1, Yes=0
             FN = FN + 1
-        if transmissao[i] == -1 and Ye2[i] == 1:  # T=0, Yes=1
+        if resul_treino[i] == 0 and Ye1[i] == 1:  # T=0, Yes=1
             FP = FP + 1
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
-    print("\n:::::::::::  FRONTERIA DECISAO ------------------")
-    print(" SE - sensibilidade  >", round(SE, 3))
-    print(" SP - Especificidade >", round(SP, 3))
+    print("\n------------------  SIMILARIDADE ------------------")
+    print(" SE - sensibilidade  =", round(SE, 3))
+    print(" SP - Especificidade =", round(SP, 3))
 
-
-KNN(data_treino, resul_treino, 5)
