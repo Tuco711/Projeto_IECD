@@ -20,13 +20,15 @@ CC_list = []
 for col in range(colunas):
     CC_list.append(np.abs(np.corrcoef(data[:, col], transmissao)[0][1]))
 
-# ------------------------------------- Representação grafica das variaveis ---------------------------------------------
-def graficRepresentation():
+
+# ------------------------------------- Representação grafica das variaveis --------------------------------------------
+def grafic_representation():
     for col in range(colunas):
         plt.figure(col)
         for row in range(lines):
             # print(f'{row}={data[:,col][row]}')
             plt.scatter(row, data[:, col][row])
+
 
 # -------------------------- Verificando se o VOLUME do motor tem alguma correlação significativa ----------------------
 def vol_motor():
@@ -49,6 +51,7 @@ def cc_filter(val1, val2):
             lst.append(idx)
     return lst
 
+
 CCs = cc_filter(0.20, 0.9)
 
 new_data = []
@@ -60,6 +63,7 @@ for col in CCs:
 
 new_data.append(transmissao)
 
+# ================================================ OUTLIERS ============================================================
 # ---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
 # Metodo KNN
 def outliers_KNN(tratar):
@@ -91,7 +95,7 @@ new_label = np.array(new_label)
 # -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
 # Metodo Filtro através do desvio padrão
 def outliers_filter(data_filter, fator):
-    mean = np.mean(data_filter)                 # MELHOR MÉTODO PARA OUTLIERS (Usa pontos reais)
+    mean = np.mean(data_filter)  # MELHOR MÉTODO PARA OUTLIERS (Usa pontos reais)
     desvio = np.std(data_filter)
 
     limMax = mean + fator * desvio
@@ -107,7 +111,10 @@ def outliers_filter(data_filter, fator):
 
     print("Numero de outliers encontrados pelo Filter em 'highway_mpg' =", soma)
 
+
 outliers_filter(new_data[2, :], 3)  # hightway_mpg
+
+# ============================================= PREPARAÇÃO FINAL =======================================================
 # ----------------------------------------- Normalização dos dados -----------------------------------------------------
 for i in range(new_data.shape[0] - 1):
     new_data[i, :] = new_data[i, :] - new_data[i, :].min()
@@ -122,25 +129,25 @@ resul_treino = np.array(new_data[:3574, 3])
 data_validacao = np.array(new_data[3574:, :3])
 resul_avaliacao = np.array(new_data[3574:, 3])
 
-# --------------------------------------------- Criação dos modelos ----------------------------------------------------
+# --------------------------------------------- *Criação dos modelos* --------------------------------------------------
 # ================================================== Método KNN ========================================================
 
 def NearestKN(P, ignore, data):
-    dist = np.empty([np.shape(data)[0], 2])     # Cria matriz dist/idx
+    dist = np.empty([np.shape(data)[0], 2])  # Cria matriz dist/idx
 
-    for i in range(np.shape(data)[0]):      # Percorre as linhas
+    for i in range(np.shape(data)[0]):  # Percorre as linhas
         if i == ignore:
-            dist[i] = [9999, i]     # Foi notado que dava distância 0, aqui a gente contorna isso
+            dist[i] = [9999, i]  # Foi notado que dava distância 0, aqui a gente contorna isso
             continue
 
-        dist[i] = [np.linalg.norm(P - data[i]), i]      # Calculo da distancia
+        dist[i] = [np.linalg.norm(P - data[i]), i]  # Calculo da distancia
 
     olddist = dist
 
-    idx = np.argsort(dist[:, 0])    # sort nas distancias
+    idx = np.argsort(dist[:, 0])  # sort nas distancias
     sortedDist = dist[idx]
 
-    return sortedDist       # Retorna a matriz das distancias filtradas pela mais proxima
+    return sortedDist  # Retorna a matriz das distancias filtradas pela mais proxima
 
 
 def KNN(data_knn, res_knn, k):
@@ -156,24 +163,24 @@ def KNN(data_knn, res_knn, k):
         classifica = 0
 
         v = data_knn[i]
-        neigh_idx = NearestKN(v, i, data_knn)[:, 1]     # Vetor com os índices mais proximos
+        neigh_idx = NearestKN(v, i, data_knn)[:, 1]  # Vetor com os índices mais proximos
 
         nn = []
         for idx in range(k):
-            nn.append(neigh_idx[idx])   # Listas com os k indices mais proximos
+            nn.append(neigh_idx[idx])  # Listas com os k indices mais proximos
 
         nn = np.array(nn)
 
         sum = 0
         for elem in nn:
             elem = int(elem)
-            sum = sum + res_knn[elem]   # Somatório das calssificações dos k vizinhos (0/1)
+            sum = sum + res_knn[elem]  # Somatório das calssificações dos k vizinhos (0/1)
 
         xs = data_knn[i, 0]
         ys = data_knn[i, 1]
         zs = data_knn[i, 2]
 
-        if sum > (k/2):     # Moda
+        if sum > (k / 2):  # Moda
             p0 = plt.scatter(xs, ys, zs, 'b')
             classifica = 1
 
@@ -198,12 +205,13 @@ def KNN(data_knn, res_knn, k):
     ax.set_ylabel("city_mpg")
     ax.set_zlabel("highway_mpg")
     plt.show()
-# ______________________________________________________________________________________________________________________
-    SE=TP/(TP+FN)
-    SP=TN/(TN+FP)
+    # __________________________________________________________________________________________________________________
+    SE = TP / (TP + FN)
+    SP = TN / (TN + FP)
     print("\n  ------------------ KNN ------------------")
-    print(" SE - sensibilidade  =", round(SE,3))
-    print(" SP - Especificidade =", round(SP,3))
+    print(" SE - sensibilidade  =", round(SE, 3))
+    print(" SP - Especificidade =", round(SP, 3))
+
 
 # ======================================= Fronteira de Decisão =========================================================
 
@@ -222,6 +230,7 @@ def fronteria_decisao(data_reg, res_reg):
     TP = 0
     TN = 0
     FN = 0
+
     for i in range(0, data_reg.shape[0]):
         if res_reg[i] == ext[i] and res_reg[i] == 1:  # T=Yest=1
             TP = TP + 1
@@ -232,7 +241,9 @@ def fronteria_decisao(data_reg, res_reg):
         if res_reg[i] == 0 and ext[i] == 1:  # T=0, Yes=1
             FP = FP + 1
 
-# VERIFICAR A CONTA !!!
+    print()
+
+    # VERIFICAR A CONTA !!!
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
@@ -240,10 +251,7 @@ def fronteria_decisao(data_reg, res_reg):
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
 
-
-fronteria_decisao(data_treino, resul_treino)
-
-
+# ============================================== SIMILARIDADE ==========================================================
 def similaridade(data_sim, res_sim):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -282,7 +290,7 @@ def similaridade(data_sim, res_sim):
     ax.set_zlabel("highway_mpg")
     plt.show()
 
-# ----------------------------------------------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------------------------------------
 
     FP = 0
     TP = 0
@@ -304,3 +312,4 @@ def similaridade(data_sim, res_sim):
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
 
+fronteria_decisao(data_treino, resul_treino)
