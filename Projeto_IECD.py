@@ -191,7 +191,7 @@ def KNN(data_knn, res_knn, k):
         if classifica == 0 and res_knn[i] == 1:
             FP += 1
 
-    plt.title("Representação grafica da classificação")
+    plt.title("Representação grafica da classificação - KNN")
     fig.legend((p0, p1), ('Automático', 'Manual'), loc='upper left')
 
     ax.set_xlabel("Torque")
@@ -207,49 +207,82 @@ def KNN(data_knn, res_knn, k):
 
 # ======================================= Fronteira de Decisão =========================================================
 
-def fronteria_decisao():
-    # Calculo dos Minimos quadrados
-    UM = np.ones((data_treino.shape[0]))
-    X1 = np.array([data_treino.shape[0], data_treino.shape[1]+1])
-    X1 = np.concatenate(UM, 1)
+def fronteria_decisao(data_reg, res_reg):
+    UM = np.ones((data_reg.shape[0], 1))
+    X1 = np.concatenate((data_reg, UM), axis=1)
 
-    # X1 = np.concatenate((data_treino, UM), axis=1)
-    id0 = np.where(resul_treino == 0)[0]
-    transmissao[id0] = -1
-
-    LSQ = np.linalg.lstsq(X1, transmissao, rcond=None)
+    LSQ = np.linalg.lstsq(X1, res_reg, rcond=None)
     PAR = LSQ[0]
 
-    # Fronteira de decisão (reta)
-    m = -PAR[0] / PAR[1]
-    b = -PAR[2] / PAR[1]
+    ext = np.dot(X1, PAR).round()
+    id0 = np.where(ext == 0)[0]
+    id1 =np.where(ext == 1)[0]
 
-    Ye2 = -1 * np.ones(data_treino.shape[1])
+    FP = 0
+    TP = 0
+    TN = 0
+    FN = 0
+    for i in range(0, data_reg.shape[0]):
+        if res_reg[i] == ext[i] and res_reg[i] == 1:  # T=Yest=1
+            TP = TP + 1
+        if res_reg[i] == ext[i] and res_reg[i] == 0:  # T=Yest=0
+            TN = TN + 1
+        if res_reg[i] == 1 and ext[i] == 0:  # T=1, Yes=0
+            FN = FN + 1
+        if res_reg[i] == 0 and ext[i] == 1:  # T=0, Yes=1
+            FP = FP + 1
 
-    for i in range(0, data_treino.shape[1]):
-        if new_data[1, i] - m * new_data[0, i] - b >= 0:
-            Ye2[i] = -1
+# VERIFICAR A CONTA !!!
 
-# KNN(data_treino, resul_treino, 5)
-def similaridade():
-    id0 = np.where(resul_treino == 0)[0]
+    SE = TP / (TP + FN)
+    SP = TN / (TN + FP)
+    print("\n------------------  FRONTEIRA DE DECISÃO ------------------")
+    print(" SE - sensibilidade  =", round(SE, 3))
+    print(" SP - Especificidade =", round(SP, 3))
+
+
+fronteria_decisao(data_treino, resul_treino)
+
+
+def similaridade(data_sim, res_sim):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    id0 = np.where(res_sim == 0)[0]
     C0 = np.zeros(3)
-    C0[0] = np.mean(data_treino[id0, 0])
-    C0[1] = np.mean(data_treino[id0, 1])
-    C0[2] = np.mean(data_treino[id0, 2])
+    C0[0] = np.mean(data_sim[id0, 0])
+    C0[1] = np.mean(data_sim[id0, 1])
+    C0[2] = np.mean(data_sim[id0, 2])
     # --------------------------------------- laranja media / tipica
-    id1 = np.where(resul_treino == 1)[0]
+    id1 = np.where(res_sim == 1)[0]
     C1 = np.zeros(3)
-    C1[0] = np.mean(data_treino[id1, 0])
-    C1[1] = np.mean(data_treino[id1, 1])
-    C1[2] = np.mean(data_treino[id1, 2])
+    C1[0] = np.mean(data_sim[id1, 0])
+    C1[1] = np.mean(data_sim[id1, 1])
+    C1[2] = np.mean(data_sim[id1, 2])
 
-    Ye1 = np.zeros(data_treino.shape[0])  # Estimativa doi ruto - zeros = tudo peras !!
-    for i in range(0, data_treino.shape[0]):
-        d0 = np.linalg.norm(C0 - data_treino[i, :])  # dist Pera tipica , fruto
-        d1 = np.linalg.norm(C1 - data_treino[i, :])  # dist Laranja tipica , fruto
+    Ye1 = np.zeros(data_sim.shape[0])  # Estimativa doi ruto - zeros = tudo peras !!
+    for i in range(0, data_sim.shape[0]):
+        d0 = np.linalg.norm(C0 - data_sim[i, :])  # dist Pera tipica , fruto
+        d1 = np.linalg.norm(C1 - data_sim[i, :])  # dist Laranja tipica , fruto
+
+        xs = data_sim[i, 0]
+        ys = data_sim[i, 1]
+        zs = data_sim[i, 2]
+
         if d1 < d0:  # mais parecido com uma laranja media
             Ye1[i] = 1
+            p1 = plt.scatter(xs, ys, zs, 'b')
+        else:
+            p0 = plt.scatter(xs, ys, zs, 'r')
+
+    plt.title("Representação grafica da classificação - Similaridade")
+    fig.legend((p0, p1), ('Automático', 'Manual'), loc='upper left')
+
+    ax.set_xlabel("Torque")
+    ax.set_ylabel("city_mpg")
+    ax.set_zlabel("highway_mpg")
+    plt.show()
+
+# ----------------------------------------------------------------------------------------------------------------------
 
     FP = 0
     TP = 0
