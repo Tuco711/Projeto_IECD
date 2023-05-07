@@ -216,7 +216,7 @@ def fronteria_decisao(data_reg, res_reg):
 
     ext = np.dot(X1, PAR).round()
     id0 = np.where(ext == 0)[0]
-    id1 =np.where(ext == 1)[0]
+    id1 = np.where(ext == 1)[0]
 
     FP = 0
     TP = 0
@@ -252,17 +252,17 @@ def similaridade(data_sim, res_sim):
     C0[0] = np.mean(data_sim[id0, 0])
     C0[1] = np.mean(data_sim[id0, 1])
     C0[2] = np.mean(data_sim[id0, 2])
-    # --------------------------------------- laranja media / tipica
+
     id1 = np.where(res_sim == 1)[0]
     C1 = np.zeros(3)
     C1[0] = np.mean(data_sim[id1, 0])
     C1[1] = np.mean(data_sim[id1, 1])
     C1[2] = np.mean(data_sim[id1, 2])
 
-    Ye1 = np.zeros(data_sim.shape[0])  # Estimativa doi ruto - zeros = tudo peras !!
+    Ye1 = np.zeros(data_sim.shape[0])
     for i in range(0, data_sim.shape[0]):
-        d0 = np.linalg.norm(C0 - data_sim[i, :])  # dist Pera tipica , fruto
-        d1 = np.linalg.norm(C1 - data_sim[i, :])  # dist Laranja tipica , fruto
+        d0 = np.linalg.norm(C0 - data_sim[i, :])
+        d1 = np.linalg.norm(C1 - data_sim[i, :])
 
         xs = data_sim[i, 0]
         ys = data_sim[i, 1]
