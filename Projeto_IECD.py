@@ -305,13 +305,13 @@ def similaridade(data_sim, res_sim):
     TN = 0
     FN = 0
     for i in range(0, data_treino.shape[0]):
-        if resul_treino[i] == Ye1[i] and resul_treino[i] == 1:  # T=Yest=1
+        if res_sim[i] == Ye1[i] and res_sim[i] == 1:  # T=Yest=1
             TP = TP + 1
-        if resul_treino[i] == Ye1[i] and resul_treino[i] == 0:  # T=Yest=0
+        if res_sim[i] == Ye1[i] and res_sim[i] == 0:  # T=Yest=0
             TN = TN + 1
-        if resul_treino[i] == 1 and Ye1[i] == 0:  # T=1, Yes=0
+        if res_sim[i] == 1 and Ye1[i] == 0:  # T=1, Yes=0
             FN = FN + 1
-        if resul_treino[i] == 0 and Ye1[i] == 1:  # T=0, Yes=1
+        if res_sim[i] == 0 and Ye1[i] == 1:  # T=0, Yes=1
             FP = FP + 1
 
     SE = TP / (TP + FN)
@@ -326,7 +326,62 @@ def similaridade(data_sim, res_sim):
     print(" F1 - F1Score =", round(F1, 3))
 
 
+def indv_rule_class(data_irc, res_irc, var = [0, 1, 2]):
+    manual_idx = []
+    auto_idx = []
 
-KNN(data_treino, resul_treino, 5)
-fronteria_decisao(data_treino, resul_treino)
-similaridade(data_treino, resul_treino)
+    for idx in range(0, data_irc.shape[0]):
+        if res_irc[idx] == 0:
+            manual_idx.append(idx)
+        else:
+            auto_idx.append(idx)
+
+    manual_val = np.array(data_irc[manual_idx][var])
+    auto_val = np.array(data_irc[auto_idx][var])
+
+    manual_mean = np.mean(manual_val)
+    auto_mean = np.mean(auto_val)
+
+    classifica = []
+    for i in range(0, data_irc.shape[0]):
+        mean_val = data_irc[i, var]
+
+        dist_manual = np.linalg.norm(mean_val - manual_mean)
+        dist_auto = np.linalg.norm(mean_val - auto_mean)
+
+        if dist_manual < dist_auto:
+            classifica.append(0)
+        else:
+            classifica.append(1)
+
+    FP = 0
+    TP = 0
+    TN = 0
+    FN = 0
+
+    for i in range(0, data_treino.shape[0]):
+        if res_irc[i] == classifica[i] and res_irc[i] == 1:  # T=Yest=1
+            TP = TP + 1
+        if res_irc[i] == classifica[i] and res_irc[i] == 0:  # T=Yest=0
+            TN = TN + 1
+        if res_irc[i] == 1 and classifica[i] == 0:  # T=1, Yes=0
+            FN = FN + 1
+        if res_irc[i] == 0 and classifica[i] == 1:  # T=0, Yes=1
+            FP = FP + 1
+
+    SE = TP / (TP + FN)
+    SP = TN / (TN + FP)
+    PC = TP / (TP + FP)
+    F1 = (2 * PC * SE) / PC + SE
+
+    print("\n  ------------------ IRC ------------------")
+    print(" SE - sensibilidade  =", round(SE, 3))
+    print(" SP - Especificidade =", round(SP, 3))
+    print(" PC - Precisao =", round(PC, 3))
+    print(" F1 - F1Score =", round(F1, 3))
+
+
+# KNN(data_treino, resul_treino, 5)
+# fronteria_decisao(data_treino, resul_treino)
+# similaridade(data_treino, resul_treino)
+indv_rule_class(data_treino, resul_treino)
