@@ -205,12 +205,18 @@ def KNN(data_knn, res_knn, k):
     ax.set_ylabel("city_mpg")
     ax.set_zlabel("highway_mpg")
     plt.show()
+
     # __________________________________________________________________________________________________________________
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
+
+    PC = TP / (TP + FP)
+    F1 = (2*PC*SE) / PC + SE
     print("\n  ------------------ KNN ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
+    print(" PC - Precisao =", round(PC, 3))
+    print(" F1 - F1Score =", round(F1,3))
 
 
 # ======================================= Fronteira de Decisão =========================================================
@@ -232,25 +238,27 @@ def fronteria_decisao(data_reg, res_reg):
     FN = 0
 
     for i in range(0, data_reg.shape[0]):
-        if res_reg[i] == ext[i] and res_reg[i] == 1:  # T=Yest=1
+        if res_reg[i] == ext[i] and res_reg[i] == 1:
             TP = TP + 1
-        if res_reg[i] == ext[i] and res_reg[i] == 0:  # T=Yest=0
+        if res_reg[i] == ext[i] and res_reg[i] == 0:
             TN = TN + 1
-        if res_reg[i] == 1 and ext[i] == 0:  # T=1, Yes=0
+        if res_reg[i] == 1 and ext[i] == 0:
             FN = FN + 1
-        if res_reg[i] == 0 and ext[i] == 1:  # T=0, Yes=1
+        if res_reg[i] == 0 and ext[i] == 1:
             FP = FP + 1
 
-    print()
 
-    # VERIFICAR A CONTA !!!
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
-    print("\n------------------  FRONTEIRA DE DECISÃO ------------------")
+    PC = TP / (TP + FP)
+    F1 = (2 * PC * SE) / PC + SE
+
+    print("\n  ------------------ FRONTEIRA DE DECISAO ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
-
+    print(" PC - Precisao =", round(PC, 3))
+    print(" F1 - F1Score =", round(F1, 3))
 # ============================================== SIMILARIDADE ==========================================================
 def similaridade(data_sim, res_sim):
     fig = plt.figure()
@@ -308,8 +316,17 @@ def similaridade(data_sim, res_sim):
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
-    print("\n------------------  SIMILARIDADE ------------------")
+    PC = TP / (TP + FP)
+    F1 = (2 * PC * SE) / PC + SE
+
+    print("\n  ------------------ SIMILARIDADE ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
+    print(" PC - Precisao =", round(PC, 3))
+    print(" F1 - F1Score =", round(F1, 3))
 
+
+
+KNN(data_treino, resul_treino, 5)
 fronteria_decisao(data_treino, resul_treino)
+similaridade(data_treino, resul_treino)
