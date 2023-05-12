@@ -2,9 +2,6 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-# variáveis de altura 0, largura 1 e comprimento2 do motor têm, cada uma, 20 valores com valor 0 (valor em falta)
-# coluna 12 tem 20 outliers > 90
-
 # ---------------------------------------- Carregamento dos dados ------------------------------------------------------
 
 data = np.load("projeto_dataset.npy")
@@ -29,6 +26,28 @@ def grafic_representation():
             # print(f'{row}={data[:,col][row]}')
             plt.scatter(row, data[:, col][row])
 
+# =========================================== Missing Data =============================================================
+# Apenas existentes nas dimensões do motor
+def miss_mean():
+    for c in range(0,3):
+        mean = np.mean(data[:,c])
+        for l in range(lines):
+            if data[l, c] == 0:
+                data[l, c] = mean
+
+
+def miss_knn():
+    k = 3 # numero de vizinhos pra cada lado do missing data - os dados de x - k até x + k
+    for c in range(0,3):
+        for l in range(lines):
+            if data[l, c] == 0:
+                lst = []
+                for i in range(1, k):
+                    lst.append(data[l - i, c])
+                    lst.append(data[l + i, c])
+
+                mean = np.mean(lst)
+                data[l, c] = mean
 
 # -------------------------- Verificando se o VOLUME do motor tem alguma correlação significativa ----------------------
 def vol_motor():
@@ -43,7 +62,8 @@ def vol_motor():
     # O volume do motor não tem relação significativa com a transmissão
 
 
-# --------------------------------------- Seleção de variaveis ---------------------------------------------------------
+# ======================================= Seleção de variaveis =========================================================
+# --------------------------------------------- Correlação -------------------------------------------------------------
 def cc_filter(val1, val2):
     lst = []
     for idx in range(len(CC_list)):
@@ -51,9 +71,8 @@ def cc_filter(val1, val2):
             lst.append(idx)
     return lst
 
-
 CCs = cc_filter(0.20, 0.9)
-
+# ------------------- Redução do dataset
 new_data = []
 new_label = []
 
@@ -64,10 +83,10 @@ for col in CCs:
 new_data.append(transmissao)
 
 # ================================================ OUTLIERS ============================================================
-# ---------------------------Removendo os outliers ja conhecidos em City_mpg--------------------------------------------
+# -------------------------- Removendo os outliers ja conhecidos em City_mpg -------------------------------------------
 # Metodo KNN
 def outliers_KNN(tratar):
-    k = 3  # numero de vizinhos
+    k = 5  # numero de vizinhos
     count = 0
 
     for i in range(lines):
@@ -95,7 +114,7 @@ new_label = np.array(new_label)
 # -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
 # Metodo Filtro através do desvio padrão
 def outliers_filter(data_filter, fator):
-    mean = np.mean(data_filter)  # MELHOR MÉTODO PARA OUTLIERS (Usa pontos reais)
+    mean = np.mean(data_filter)
     desvio = np.std(data_filter)
 
     limMax = mean + fator * desvio
@@ -123,11 +142,8 @@ for i in range(new_data.shape[0] - 1):
 new_data = np.transpose(new_data)
 # -------------------------------- Separando os dados em Treino/Validação ----------------------------------------------
 random.shuffle(new_data[0])  # Shuffle apenas nas linhas
-data_treino = np.array(new_data[:3574, :3])
-resul_treino = np.array(new_data[:3574, 3])
-
-data_validacao = np.array(new_data[3574:, :3])
-resul_avaliacao = np.array(new_data[3574:, 3])
+data_val = np.array(new_data[:, :3])
+data_label = np.array(new_data[:, 3])
 
 # --------------------------------------------- *Criação dos modelos* --------------------------------------------------
 # ================================================== Método KNN ========================================================
@@ -211,7 +227,8 @@ def KNN(data_knn, res_knn, k):
     SP = TN / (TN + FP)
 
     PC = TP / (TP + FP)
-    F1 = (2*PC*SE) / PC + SE
+    F1 = 2*(PC*SE) / (PC + SE)
+
     print("\n  ------------------ KNN ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
     print(" SP - Especificidade =", round(SP, 3))
@@ -252,7 +269,7 @@ def fronteria_decisao(data_reg, res_reg):
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
     PC = TP / (TP + FP)
-    F1 = (2 * PC * SE) / PC + SE
+    F1 = 2*(PC * SE) / (PC + SE)
 
     print("\n  ------------------ FRONTEIRA DE DECISAO ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
@@ -284,7 +301,7 @@ def similaridade(data_sim, res_sim):
         ys = data_sim[i, 1]
         zs = data_sim[i, 2]
 
-        if d1 < d0:  # mais parecido com uma laranja media
+        if d1 < d0:
             Ye1[i] = 1
             p1 = plt.scatter(xs, ys, zs, 'b')
         else:
@@ -304,20 +321,20 @@ def similaridade(data_sim, res_sim):
     TP = 0
     TN = 0
     FN = 0
-    for i in range(0, data_treino.shape[0]):
-        if res_sim[i] == Ye1[i] and res_sim[i] == 1:  # T=Yest=1
+    for i in range(0, data_sim.shape[0]):
+        if res_sim[i] == Ye1[i] and res_sim[i] == 1:
             TP = TP + 1
-        if res_sim[i] == Ye1[i] and res_sim[i] == 0:  # T=Yest=0
+        if res_sim[i] == Ye1[i] and res_sim[i] == 0:
             TN = TN + 1
-        if res_sim[i] == 1 and Ye1[i] == 0:  # T=1, Yes=0
+        if res_sim[i] == 1 and Ye1[i] == 0:
             FN = FN + 1
-        if res_sim[i] == 0 and Ye1[i] == 1:  # T=0, Yes=1
+        if res_sim[i] == 0 and Ye1[i] == 1:
             FP = FP + 1
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
     PC = TP / (TP + FP)
-    F1 = (2 * PC * SE) / PC + SE
+    F1 = 2 * (PC * SE) / (PC + SE)
 
     print("\n  ------------------ SIMILARIDADE ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
@@ -359,20 +376,20 @@ def indv_rule_class(data_irc, res_irc, var = [0, 1, 2]):
     TN = 0
     FN = 0
 
-    for i in range(0, data_treino.shape[0]):
-        if res_irc[i] == classifica[i] and res_irc[i] == 1:  # T=Yest=1
+    for i in range(0, data_irc.shape[0]):
+        if res_irc[i] == classifica[i] and res_irc[i] == 1:
             TP = TP + 1
-        if res_irc[i] == classifica[i] and res_irc[i] == 0:  # T=Yest=0
+        if res_irc[i] == classifica[i] and res_irc[i] == 0:
             TN = TN + 1
-        if res_irc[i] == 1 and classifica[i] == 0:  # T=1, Yes=0
+        if res_irc[i] == 1 and classifica[i] == 0:
             FN = FN + 1
-        if res_irc[i] == 0 and classifica[i] == 1:  # T=0, Yes=1
+        if res_irc[i] == 0 and classifica[i] == 1:
             FP = FP + 1
 
     SE = TP / (TP + FN)
     SP = TN / (TN + FP)
     PC = TP / (TP + FP)
-    F1 = (2 * PC * SE) / PC + SE
+    F1 = 2 * (PC * SE) / (PC + SE)
 
     print("\n  ------------------ IRC ------------------")
     print(" SE - sensibilidade  =", round(SE, 3))
@@ -381,7 +398,4 @@ def indv_rule_class(data_irc, res_irc, var = [0, 1, 2]):
     print(" F1 - F1Score =", round(F1, 3))
 
 
-# KNN(data_treino, resul_treino, 5)
-# fronteria_decisao(data_treino, resul_treino)
-# similaridade(data_treino, resul_treino)
-indv_rule_class(data_treino, resul_treino)
+KNN(data_val, data_label, 5)
