@@ -12,12 +12,6 @@ colunas = data.shape[1]
 
 transmissao = data[:, 6]
 
-# ---------------------------------- Calculo dos coeficientes de correlação --------------------------------------------
-CC_list = []
-for col in range(colunas):
-    CC_list.append(np.abs(np.corrcoef(data[:, col], transmissao)[0][1]))
-
-
 # ------------------------------------- Representação grafica das variaveis --------------------------------------------
 def grafic_representation():
     for col in range(colunas):
@@ -35,20 +29,7 @@ def miss_mean():
             if data[l, c] == 0:
                 data[l, c] = mean
 
-
-def miss_knn():
-    k = 3 # numero de vizinhos pra cada lado do missing data - os dados de x - k até x + k
-    for c in range(0,3):
-        for l in range(lines):
-            if data[l, c] == 0:
-                lst = []
-                for i in range(1, k):
-                    lst.append(data[l - i, c])
-                    lst.append(data[l + i, c])
-
-                mean = np.mean(lst)
-                data[l, c] = mean
-
+miss_mean()
 # -------------------------- Verificando se o VOLUME do motor tem alguma correlação significativa ----------------------
 def vol_motor():
     vol_motor = []
@@ -57,30 +38,38 @@ def vol_motor():
         vol_motor.append(vol)
 
     corre_motor = np.corrcoef(vol_motor, transmissao)[0][1]
-    print(corre_motor)
+    print("------------------ Correcoef do volume do motor ------------------")
+    print(f"A correlacao do volume do motor é: {corre_motor.round(3)}")
 
     # O volume do motor não tem relação significativa com a transmissão
-
+vol_motor()
 
 # ======================================= Seleção de variaveis =========================================================
+# ---------------------------------- Calculo dos coeficientes de correlação --------------------------------------------
+CC_list = []
+for col in range(colunas):
+    CC_list.append(np.abs(np.corrcoef(data[:, col], transmissao)[0][1]))
+
 # --------------------------------------------- Correlação -------------------------------------------------------------
 def cc_filter(val1, val2):
     lst = []
     for idx in range(len(CC_list)):
         if val1 < CC_list[idx] < val2:
             lst.append(idx)
-    return lst
 
-CCs = cc_filter(0.20, 0.9)
-# ------------------- Redução do dataset
-new_data = []
-new_label = []
+    # ------------------- Redução do dataset
+    new_data = []
+    new_label = []
 
-for col in CCs:
-    new_data.append(data[:, col])  # Esse passo transpõe os dados
-    new_label.append(labels[col])  # Linha vira coluna, coluna vira linha
+    for col in lst:
+        new_data.append(data[:, col])  # Esse passo transpõe os dados
+        new_label.append(labels[col])  # Linha vira coluna, coluna vira linha
 
-new_data.append(transmissao)
+    new_data.append(transmissao)
+
+    return new_data, new_label
+
+new_data, new_label = cc_filter(0.20, 0.9)
 
 # ================================================ OUTLIERS ============================================================
 # -------------------------- Removendo os outliers ja conhecidos em City_mpg -------------------------------------------
@@ -106,33 +95,49 @@ def outliers_KNN(tratar):
     print("Numero de outliers encontrados pelo KNN em 'city_mpg' =", count)
 
 
-outliers_KNN(new_data[1])  # city_mpg
+# outliers_KNN(new_data[1])  # city_mpg
 
 new_data = np.array(new_data)
 new_label = np.array(new_label)
 
 # -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
 # Metodo Filtro através do desvio padrão
-def outliers_filter(data_filter, fator):
-    mean = np.mean(data_filter)
-    desvio = np.std(data_filter)
+def outliers_filter(data_filter, var, fator):
+    mean = np.mean(data_filter[var, :])
+    desvio = np.std(data_filter[var, :])
 
     limMax = mean + fator * desvio
     limMin = mean - fator * desvio
 
-    outlierMax = np.where(data_filter >= limMax)[0]
-    outlierMin = np.where(data_filter <= limMin)[0]
+    outlierMax = np.where(data_filter[var, :] >= limMax)[0]
+    outlierMin = np.where(data_filter[var, :] <= limMin)[0]
 
-    data_filter[outlierMax] = limMax
-    data_filter[outlierMin] = limMin
+    data_filter[var][outlierMax] = limMax
+    data_filter[var][outlierMin] = limMin
 
     soma = np.sum(len(outlierMin) + len(outlierMax))
 
-    print("Numero de outliers encontrados pelo Filter em 'highway_mpg' =", soma)
+    print(f"Numero de outliers encontrados pelo Filter em {new_label[var]} =", soma)
 
+outliers_filter(new_data,0, 3) #torque
+outliers_filter(new_data, 1, 3) # city_mpg
+outliers_filter(new_data, 2, 3)  # hightway_mpg
+# ========================================== EXTRACAO DE CARACTERICTICA ================================================
+print(" ------------- extracao de carac ----------")
+def mean_torque():
+    print(f"A media do troque é: {np.mean(new_data[0][:]).round(3)}")
 
-outliers_filter(new_data[2, :], 3)  # hightway_mpg
+mean_torque()
 
+def mean_city():
+    print(f"A media de city_mpg é: {np.mean(new_data[1][:]).round(3)}")
+
+mean_city()
+
+def mean_highway():
+    print(f"A media do highway_mpg é: {np.mean(new_data[2][:]).round(3)}")
+
+mean_highway()
 # ============================================= PREPARAÇÃO FINAL =======================================================
 # ----------------------------------------- Normalização dos dados -----------------------------------------------------
 for i in range(new_data.shape[0] - 1):
@@ -276,6 +281,7 @@ def fronteria_decisao(data_reg, res_reg):
     print(" SP - Especificidade =", round(SP, 3))
     print(" PC - Precisao =", round(PC, 3))
     print(" F1 - F1Score =", round(F1, 3))
+
 # ============================================== SIMILARIDADE ==========================================================
 def similaridade(data_sim, res_sim):
     fig = plt.figure()
@@ -397,5 +403,4 @@ def indv_rule_class(data_irc, res_irc, var = [0, 1, 2]):
     print(" PC - Precisao =", round(PC, 3))
     print(" F1 - F1Score =", round(F1, 3))
 
-
-KNN(data_val, data_label, 5)
+similaridade(data_val, data_label)
