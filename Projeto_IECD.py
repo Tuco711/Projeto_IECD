@@ -72,36 +72,10 @@ def cc_filter(val1, val2):
 new_data, new_label = cc_filter(0.20, 0.9)
 
 # ================================================ OUTLIERS ============================================================
-# -------------------------- Removendo os outliers ja conhecidos em City_mpg -------------------------------------------
-# Metodo KNN
-def outliers_KNN(tratar):
-    k = 5  # numero de vizinhos
-    count = 0
-
-    for i in range(lines):
-        vizinhos = []
-        if tratar[i] > 90:  # Valor 90 escolhido, pois o professor falou que outliers eram > 90
-            count += 1
-
-            for j in range(1, k + 1):
-                vizinhos.append(tratar[i - k])
-                vizinhos.append(tratar[i + k])
-
-            mean = np.mean(vizinhos)
-            # print(city_mpg[i], mean, vizinhos)
-            tratar[i] = mean
-
-    print("\n ------------------ Outliers ------------------")
-    print("Numero de outliers encontrados pelo KNN em 'city_mpg' =", count)
-
-
-# outliers_KNN(new_data[1])  # city_mpg
-
 new_data = np.array(new_data)
 new_label = np.array(new_label)
 
-# -------------------------------- Removendo outlier de highway_mph ----------------------------------------------------
-# Metodo Filtro através do desvio padrão
+# -------------------------------------- Metodo Filtro através do desvio padrão ----------------------------------------
 def outliers_filter(data_filter, var, fator):
     mean = np.mean(data_filter[var, :])
     desvio = np.std(data_filter[var, :])
@@ -119,6 +93,7 @@ def outliers_filter(data_filter, var, fator):
 
     print(f"Numero de outliers encontrados pelo Filter em {new_label[var]} =", soma)
 
+print(" -------------- Outliers ------------")
 outliers_filter(new_data,0, 3) #torque
 outliers_filter(new_data, 1, 3) # city_mpg
 outliers_filter(new_data, 2, 3)  # hightway_mpg
@@ -145,7 +120,7 @@ for i in range(new_data.shape[0] - 1):
     new_data[i, :] = new_data[i, :] / new_data[i, :].max()
 
 new_data = np.transpose(new_data)
-# -------------------------------- Separando os dados em Treino/Validação ----------------------------------------------
+# ----------------------------- Separando os dados em Valores/Labels ("resultado") -------------------------------------
 random.shuffle(new_data[0])  # Shuffle apenas nas linhas
 data_val = np.array(new_data[:, :3])
 data_label = np.array(new_data[:, 3])
@@ -403,4 +378,4 @@ def indv_rule_class(data_irc, res_irc, var = [0, 1, 2]):
     print(" PC - Precisao =", round(PC, 3))
     print(" F1 - F1Score =", round(F1, 3))
 
-similaridade(data_val, data_label)
+indv_rule_class(data_val, data_label, 2)
